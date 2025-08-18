@@ -10,36 +10,33 @@ This application has not been tested or actively developed for some time now. A 
 
 ## Building the Application
 
-NIMAS2PDF is a Java project built with Apache Ant. To build the application:
+NIMAS2PDF is a Java project built with Maven:
 
-1. Make sure you have JDK and Apache Ant installed
-2. From the `NIMAS2PDF` directory, run:
+1. Make sure you have JDK 11 or later and Maven installed
+2. From the `nimas2pdf` directory, run:
 
 ```sh
-ant jar
+mvn clean package
 ```
 
 This will:
 - Compile the Java source files
-- Package the application into a JAR file
-- Copy required configuration files and resources
-- Create startup scripts (NIMAS2PDF.bat for Windows and NIMAS2PDF.sh for Linux)
+- Run unit tests
+- Package the application into an executable JAR file
+- Include all dependencies
 
-The built application will be available in the `dist` directory.
+The built application will be available in the `target` directory as `nimas2pdf-1.0-SNAPSHOT-jar-with-dependencies.jar`
 
 ## Running the Application
 
-### Windows
-Double-click `NIMAS2PDF.bat` or run from command line:
+### Using Maven
 ```sh
-NIMAS2PDF.bat
+mvn exec:java -Dexec.mainClass="org.eightfoldconsulting.nimas2pdf.FrameMain"
 ```
 
-### Linux/Unix
-Make the script executable and run:
+### Using the JAR directly
 ```sh
-chmod +x NIMAS2PDF.sh
-./NIMAS2PDF.sh
+java -jar target/nimas2pdf-1.0-SNAPSHOT-jar-with-dependencies.jar
 ```
 
 ## Dependencies
@@ -48,22 +45,36 @@ The application uses several key libraries:
 - Apache FOP for PDF generation
 - Apache Batik for SVG support
 - Apache XML Graphics Commons
-- Apache Commons IO and Logging
+- Apache Commons IO
+- SLF4J with Logback for logging
 - Xerces for XML parsing
 
-All required libraries are included in the `lib` directory.
+All dependencies are managed through Maven in the `pom.xml` file.
 
 ## Development
 
 The project uses:
+- Java 11+
+- Maven for dependency management and building
 - Java Swing for the GUI
-- NetBeans project structure
-- Apache Ant for building
-- Java logging for diagnostic output
+- SLF4J/Logback for logging
+- JUnit for testing
 
 Configuration files are stored in:
-- `conf/` - Application configuration including FOP config
-- `xml/` - XSLT stylesheets and DTDs for NIMAS processing
+- `src/main/resources/conf/` - Application configuration including FOP config
+- `src/main/resources/xml/` - XSLT stylesheets and DTDs for NIMAS processing
 
+## Development Setup
 
+1. Clone the repository:
+```sh
+git clone https://github.com/yourusername/nimas2pdf.git
+cd nimas2pdf
+```
 
+2. Build the project:
+```sh
+mvn clean install
+```
+
+3. Open in your IDE (VS Code recommended)
