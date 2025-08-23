@@ -102,10 +102,6 @@ public class ConversionJobController {
         
         return ResponseEntity.ok(jobOpt.get());
     }
-    
-
-
-
 
     /**
      * Download the generated PDF for a completed conversion job.

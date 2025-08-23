@@ -17,6 +17,7 @@ import org.w3c.dom.NodeList;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import org.eightfoldconsulting.nimas2pdf.web.util.DTDEntityResolver;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -282,6 +283,7 @@ public class NimasPackageServiceImpl implements NimasPackageService {
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         factory.setNamespaceAware(true); // Enable namespace awareness
         DocumentBuilder builder = factory.newDocumentBuilder();
+        builder.setEntityResolver(new DTDEntityResolver());
         Document document = builder.parse(new ByteArrayInputStream(opfFile.getContent()));
         
         // Extract basic metadata using a more robust approach

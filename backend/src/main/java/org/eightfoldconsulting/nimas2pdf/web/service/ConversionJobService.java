@@ -9,6 +9,7 @@ import org.eightfoldconsulting.nimas2pdf.web.repository.NimasPackageRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -34,16 +35,28 @@ public class ConversionJobService {
     @Autowired
     private NimasPackageRepository packageRepository;
     
-    // Temporarily comment out to isolate the issue
-    // @Autowired
-    // private XMLConverter xmlConverter;
+    @Autowired
+    private XMLConverter xmlConverter;
 
     /**
      * Start a new conversion job for a NIMAS package.
      */
+    @Transactional
     public ConversionJob startConversionJob(Long packageId) throws Exception {
         NimasPackage nimasPackage = packageRepository.findById(packageId)
             .orElseThrow(() -> new IllegalArgumentException("Package not found: " + packageId));
+        
+        // Find the main content XML file and get its content within the transaction
+        NimasFile mainContentFile = findMainContentFile(nimasPackage);
+        if (mainContentFile == null) {
+            throw new Exception("No main content XML file found in package");
+        }
+        
+        // Get the file content within the transaction
+        byte[] fileContent = mainContentFile.getContent();
+        if (fileContent == null || fileContent.length == 0) {
+            throw new Exception("File content is empty or null");
+        }
         
         // Create new conversion job
         String jobId = UUID.randomUUID().toString();
@@ -55,8 +68,8 @@ public class ConversionJobService {
         // Save initial job
         job = conversionJobRepository.save(job);
         
-        // Start async conversion
-        startAsyncConversion(job);
+        // Start async conversion with the file content already loaded
+        startAsyncConversion(job, fileContent, mainContentFile.getFileName());
         
         return job;
     }
@@ -65,7 +78,8 @@ public class ConversionJobService {
      * Start the actual conversion process asynchronously.
      */
     @Async
-    protected void startAsyncConversion(ConversionJob job) {
+    @Transactional
+    protected void startAsyncConversion(ConversionJob job, byte[] fileContent, String fileName) {
         try {
             // Update status to processing
             job.setStatus(ConversionJob.JobStatus.PROCESSING);
@@ -74,16 +88,46 @@ public class ConversionJobService {
             job.setProgress(10);
             conversionJobRepository.save(job);
             
-            // For now, just simulate the conversion process
-            job.setMessage("Simulating conversion process...");
-            job.setProgress(50);
+            // Create temporary files for conversion
+            Path tempDir = Files.createTempDirectory("nimas2pdf_" + job.getJobId());
+            Path xmlFile = tempDir.resolve(fileName);
+            Path outputFile = tempDir.resolve(fileName.replace(".xml", ".pdf"));
+            
+            // Write XML content to temp file
+            Files.write(xmlFile, fileContent);
+            
+            job.setMessage("Starting XML to PDF conversion...");
+            job.setProgress(30);
             conversionJobRepository.save(job);
             
-            // Simulate completion
+            // Perform the actual conversion
+            xmlConverter.convertToPdf(xmlFile, outputFile, null, null);
+            
+            job.setMessage("PDF generation completed, processing output...");
+            job.setProgress(80);
+            conversionJobRepository.save(job);
+            
+            // Read the generated PDF
+            byte[] pdfContent = Files.readAllBytes(outputFile);
+            job.setOutputContent(pdfContent);
+            job.setOutputFilename(outputFile.getFileName().toString());
+            job.setOutputSize((long) pdfContent.length);
+            
+            // Clean up temp files
+            try {
+                Files.deleteIfExists(xmlFile);
+                Files.deleteIfExists(outputFile);
+                Files.deleteIfExists(tempDir);
+            } catch (IOException e) {
+                // Log warning but don't fail the conversion
+                System.err.println("Warning: Could not delete temporary files: " + e.getMessage());
+            }
+            
+            // Mark as completed
             job.setStatus(ConversionJob.JobStatus.COMPLETED);
             job.setCompletedAt(LocalDateTime.now());
             job.setProgress(100);
-            job.setMessage("Conversion completed successfully (simulated)");
+            job.setMessage("Conversion completed successfully");
             conversionJobRepository.save(job);
             
         } catch (Exception e) {
@@ -126,6 +170,13 @@ public class ConversionJobService {
         }
         
         return null;
+    }
+
+    /**
+     * Get all conversion jobs ordered by creation date (newest first).
+     */
+    public List<ConversionJob> getAllConversionJobs() {
+        return conversionJobRepository.findAllByOrderByCreatedAtDesc();
     }
 
     /**

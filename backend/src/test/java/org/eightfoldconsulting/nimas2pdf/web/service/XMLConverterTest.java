@@ -157,4 +157,40 @@ class XMLConverterTest {
             fail("Failed to write test file: " + e.getMessage());
         }
     }
+
+    @Test
+    void testConvertToPdfWithDtdReference() throws Exception {
+        // Create test XML with DTD reference
+        String testXmlWithDtd = """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <!DOCTYPE dtbook PUBLIC "-//NISO//DTD dtbook 2005-3//EN" "http://www.daisy.org/z3986/2005/dtbook-2005-3.dtd">
+            <dtbook xmlns="http://www.daisy.org/z3986/2005/dtbook/" version="2005-3" xml:lang="En-US">
+                <head/>
+                <book>
+                    <frontmatter>
+                        <doctitle>Test Book with DTD</doctitle>
+                        <level1>
+                            <h1>Test Chapter</h1>
+                            <p>This is a test paragraph to verify DTD resolution works.</p>
+                        </level1>
+                    </frontmatter>
+                </book>
+            </dtbook>
+            """;
+
+        Path xmlFile = tempDir.resolve("test-with-dtd.xml");
+        Path pdfFile = tempDir.resolve("test-with-dtd.pdf");
+        
+        Files.writeString(xmlFile, testXmlWithDtd);
+        
+        // This should now work with our EntityResolver
+        xmlConverter.convertToPdf(xmlFile, pdfFile, null);
+        
+        assertTrue(Files.exists(pdfFile), "PDF file should be created even with DTD reference");
+        assertTrue(Files.size(pdfFile) > 0, "PDF file should not be empty");
+        
+        // Clean up
+        Files.deleteIfExists(xmlFile);
+        Files.deleteIfExists(pdfFile);
+    }
 }

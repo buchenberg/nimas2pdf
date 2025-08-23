@@ -20,6 +20,7 @@ public class ConversionJob {
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "package_id", nullable = false)
+    @JsonIgnore
     private NimasPackage nimasPackage;
     
     @Column(name = "status", nullable = false)
@@ -85,6 +86,14 @@ public class ConversionJob {
     
     public NimasPackage getNimasPackage() { return nimasPackage; }
     public void setNimasPackage(NimasPackage nimasPackage) { this.nimasPackage = nimasPackage; }
+    
+    /**
+     * Get the package ID for JSON serialization.
+     * This avoids exposing the full NimasPackage object.
+     */
+    public Long getPackageId() { 
+        return nimasPackage != null ? nimasPackage.getId() : null; 
+    }
     
     public JobStatus getStatus() { return status; }
     public void setStatus(JobStatus status) { 

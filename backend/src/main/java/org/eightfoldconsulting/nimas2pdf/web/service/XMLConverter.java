@@ -9,10 +9,20 @@ import org.springframework.stereotype.Service;
 import javax.xml.transform.Source;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.URIResolver;
+import javax.xml.transform.TransformerException;
 import javax.xml.transform.stream.StreamSource;
+import javax.xml.transform.dom.DOMSource;
+import org.xml.sax.EntityResolver;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
+import org.eightfoldconsulting.nimas2pdf.web.util.DTDEntityResolver;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import org.w3c.dom.Document;
 
 /**
  * Service for converting NIMAS DTBook XML to PDF using XSLT transformation and Apache FOP.
@@ -21,10 +31,40 @@ import java.nio.file.Path;
 public class XMLConverter {
 
     private final TransformerFactory transformerFactory;
+    private final EntityResolver entityResolver;
 
     public XMLConverter() {
         // Initialize TransformerFactory (will use Saxon-HE if available)
         this.transformerFactory = TransformerFactory.newInstance();
+        
+        // Set URI resolver to handle includes as classpath resources
+        this.transformerFactory.setURIResolver(new URIResolver() {
+            @Override
+            public Source resolve(String href, String base) throws TransformerException {
+                try {
+                    // Handle relative includes like "./includes/layout.xsl"
+                    String resourcePath = href;
+                    if (href.startsWith("./")) {
+                        resourcePath = href.substring(2);
+                    }
+                    
+                    // Convert to classpath resource path
+                    String classpathPath = "xml/xslt/" + resourcePath;
+                    ClassPathResource includeResource = new ClassPathResource(classpathPath);
+                    
+                    if (includeResource.exists()) {
+                        return new StreamSource(includeResource.getInputStream());
+                    } else {
+                        throw new TransformerException("Could not resolve XSLT include: " + href);
+                    }
+                } catch (Exception e) {
+                    throw new TransformerException("Error resolving XSLT include: " + href, e);
+                }
+            }
+        });
+        
+        // Set up EntityResolver to handle DTD resolution locally
+        this.entityResolver = new DTDEntityResolver();
     }
 
     /**
@@ -70,12 +110,19 @@ public class XMLConverter {
      */
     private void transformXmlToFo(Path xmlFile, Path foFile, Path xslStylesheet, ConversionProperties conversionProperties) throws Exception {
         // Use custom stylesheet if none provided
+        Source xsltSource;
         if (xslStylesheet == null) {
-            xslStylesheet = getCustomStylesheet();
+            // Get stylesheet from classpath as a stream
+            ClassPathResource resource = new ClassPathResource("xml/xslt/dtbook2fo.xsl");
+            if (!resource.exists()) {
+                throw new FileNotFoundException("Required custom stylesheet xml/xslt/dtbook2fo.xsl not found in classpath");
+            }
+            xsltSource = new StreamSource(resource.getInputStream());
+        } else {
+            xsltSource = new StreamSource(xslStylesheet.toFile());
         }
 
         // Create transformer
-        Source xsltSource = new StreamSource(xslStylesheet.toFile());
         Transformer transformer = transformerFactory.newTransformer(xsltSource);
         
         // Use provided conversion properties or defaults
@@ -94,7 +141,20 @@ public class XMLConverter {
         transformer.setParameter("bookmarkTables", props.isBookmarkTables());
         
         // Perform transformation
-        Source xmlSource = new StreamSource(xmlFile.toFile());
+        // Parse XML with proper DTD resolution using EntityResolver
+        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        factory.setValidating(false); // Don't validate, just resolve entities
+        factory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
+        
+        DocumentBuilder builder = factory.newDocumentBuilder();
+        builder.setEntityResolver(entityResolver);
+        
+        // Parse the XML file
+        Document document = builder.parse(xmlFile.toFile());
+        
+        // Create DOM source for transformation
+        javax.xml.transform.dom.DOMSource xmlSource = new javax.xml.transform.dom.DOMSource(document);
+        
         try (OutputStream foStream = new FileOutputStream(foFile.toFile())) {
             transformer.transform(xmlSource, new javax.xml.transform.stream.StreamResult(foStream));
         }
@@ -120,28 +180,4 @@ public class XMLConverter {
             transformer.transform(foSource, new javax.xml.transform.sax.SAXResult(fop.getDefaultHandler()));
         }
     }
-
-    /**
-     * Get the custom XSLT stylesheet for DTBook to XSL-FO conversion
-     */
-    private Path getCustomStylesheet() throws Exception {
-        try {
-            // Try to get the stylesheet from classpath resources first
-            ClassPathResource resource = new ClassPathResource("xml/xslt/dtbook2fo.xsl");
-            if (resource.exists()) {
-                return resource.getFile().toPath();
-            }
-            
-            // Fallback to file system
-            Path customStylesheet = Path.of("src/main/resources/xml/xslt/dtbook2fo.xsl");
-            if (!Files.exists(customStylesheet)) {
-                throw new FileNotFoundException("Required custom stylesheet xml/xslt/dtbook2fo.xsl not found in classpath or file system");
-            }
-            return customStylesheet;
-        } catch (Exception e) {
-            throw new FileNotFoundException("Failed to locate custom stylesheet: " + e.getMessage());
-        }
-    }
-
-
 }
