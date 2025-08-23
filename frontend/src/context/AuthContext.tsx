@@ -67,12 +67,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   const login = (provider: string) => {
-    window.location.href = `/oauth2/authorization/${provider}`;
+    window.location.href = `http://localhost:8080/oauth2/authorization/${provider}`;
   };
 
   const logout = async () => {
     try {
-      await fetch('/api/auth/logout', {
+      await fetch('http://localhost:8080/api/auth/logout', {
         method: 'POST',
         credentials: 'include'
       });
