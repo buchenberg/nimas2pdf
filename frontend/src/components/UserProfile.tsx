@@ -87,15 +87,19 @@ const UserProfile: React.FC = () => {
           <Row className="mb-3">
             <Col xs={4} className="text-muted">Roles:</Col>
             <Col xs={8}>
-              {user.roles.map((role) => (
-                <Badge
-                  key={role}
-                  bg={getRoleBadgeVariant(role)}
-                  className="me-1"
-                >
-                  {role}
-                </Badge>
-              ))}
+              {user.roles && user.roles.length > 0 ? (
+                user.roles.map((role) => (
+                  <Badge
+                    key={role}
+                    bg={getRoleBadgeVariant(role)}
+                    className="me-1"
+                  >
+                    {role}
+                  </Badge>
+                ))
+              ) : (
+                <Badge bg="secondary">No roles assigned</Badge>
+              )}
             </Col>
           </Row>
 

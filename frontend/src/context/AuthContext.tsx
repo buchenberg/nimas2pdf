@@ -6,7 +6,7 @@ interface User {
   email: string;
   pictureUrl?: string;
   provider: string;
-  roles: string[];
+  roles?: string[];
   isAdmin: boolean;
   status: string;
 }
@@ -67,12 +67,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   const login = (provider: string) => {
-    window.location.href = `http://localhost:8080/oauth2/authorization/${provider}`;
+    // Use relative URL so it works in both development and Docker environments
+    window.location.href = `/oauth2/authorization/${provider}`;
   };
 
   const logout = async () => {
     try {
-      await fetch('http://localhost:8080/api/auth/logout', {
+      await fetch('/api/auth/logout', {
         method: 'POST',
         credentials: 'include'
       });

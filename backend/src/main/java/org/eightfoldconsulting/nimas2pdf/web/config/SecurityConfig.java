@@ -1,6 +1,7 @@
 package org.eightfoldconsulting.nimas2pdf.web.config;
 
-import org.eightfoldconsulting.nimas2pdf.web.service.OAuth2UserService;
+import org.eightfoldconsulting.nimas2pdf.web.service.CustomOAuth2UserService;
+import org.eightfoldconsulting.nimas2pdf.web.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -27,7 +28,7 @@ import java.util.List;
 public class SecurityConfig {
 
     @Autowired
-    private OAuth2UserService oAuth2UserService;
+    private UserRepository userRepository;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -55,7 +56,7 @@ public class SecurityConfig {
             )
             .oauth2Login(oauth2 -> oauth2
                 .userInfoEndpoint(userInfo -> userInfo
-                    .userService(oAuth2UserService)
+                    .userService(customOAuth2UserService())
                 )
                 .successHandler(authenticationSuccessHandler())
                 .failureUrl("/login?error=true")
@@ -69,6 +70,15 @@ public class SecurityConfig {
             );
 
         return http.build();
+    }
+
+    @Bean
+    public CustomOAuth2UserService customOAuth2UserService() {
+        System.out.println("🔧 Creating CustomOAuth2UserService bean...");
+        CustomOAuth2UserService service = new CustomOAuth2UserService();
+        service.setUserRepository(userRepository);
+        System.out.println("✅ CustomOAuth2UserService bean created successfully");
+        return service;
     }
 
     @Bean

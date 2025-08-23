@@ -18,21 +18,28 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 @Transactional
-public class OAuth2UserService extends DefaultOAuth2UserService {
+public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
-    private static final Logger logger = LoggerFactory.getLogger(OAuth2UserService.class);
+    private static final Logger logger = LoggerFactory.getLogger(CustomOAuth2UserService.class);
 
-    @Autowired
     private UserRepository userRepository;
+
+    public void setUserRepository(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
 
     @Override
     public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
+        System.out.println("🔍 OAuth2UserService.loadUser() called!");
+        logger.info("🔍 OAuth2UserService.loadUser() called!");
+        
         OAuth2User oauth2User = super.loadUser(userRequest);
         
         try {
             return processOAuth2User(userRequest, oauth2User);
         } catch (Exception ex) {
             logger.error("Error processing OAuth2 user", ex);
+            System.err.println("❌ Error processing OAuth2 user: " + ex.getMessage());
             throw new OAuth2AuthenticationException("Error processing OAuth2 user: " + ex.getMessage());
         }
     }
