@@ -1,58 +1,31 @@
-# Java build files
-*.class
-*.jar
-build/
-dist/
+# Backend
+backend/target/
+backend/uploads/
+backend/outputs/
+backend/*.log
 
-# NetBeans specific
-nbproject/private/
-nbbuild/
-nbdist/
-.nb-gradle/
+# Frontend
+frontend/node_modules/
+frontend/build/
+frontend/.env
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
 
-# Mac OS specific
-.DS_Store
-.AppleDouble
-.LSOverride
-Icon
-._*
-
-# Logs
-*.log
-
-# Package Files
-*.war
-*.nar
-*.ear
-*.zip
-*.tar.gz
-*.rar
-
-# virtual machine crash logs
-hs_err_pid*
-replay_pid*
-
-# IDE files
-*.iml
-.idea/
-.project
-.classpath
-.settings/
-
-# Temp files
-*~
-.*.swp
-.*.swo
-
-target/
-.idea/
-*.iml
-.settings/
-.project
-.classpath
+# IDE
 .vscode/
-*.jar
-*.war
-*.ear
-*.class
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# OS
 .DS_Store
+Thumbs.db
+
+# Docker
+.dockerignore
