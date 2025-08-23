@@ -54,7 +54,9 @@ public class OAuth2UserService extends DefaultOAuth2UserService {
             user = registerNewUser(userRequest, userInfo);
         }
 
-        return new CustomOAuth2User(oauth2User.getAttributes(), oauth2User.getNameAttributeKey(), user);
+        String nameAttributeKey = userRequest.getClientRegistration().getProviderDetails()
+                .getUserInfoEndpoint().getUserNameAttributeName();
+        return new CustomOAuth2User(oauth2User.getAttributes(), nameAttributeKey, user);
     }
 
     private User registerNewUser(OAuth2UserRequest userRequest, OAuth2UserInfo userInfo) {
