@@ -1,0 +1,50 @@
+# Docker Compose configuration for NIMAS2PDF Web Application
+
+services:
+  nimas2pdf-web:
+    build: .
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./uploads:/app/uploads
+      - ./outputs:/app/outputs
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - APP_UPLOAD_DIR=/app/uploads
+      - APP_OUTPUT_DIR=/app/outputs
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=nimas2pdf
+      - POSTGRES_USER=nimas2pdf
+      - POSTGRES_PASSWORD=password
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # PostgreSQL database for persistent storage
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: nimas2pdf
+      POSTGRES_USER: nimas2pdf
+      POSTGRES_PASSWORD: password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nimas2pdf"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  postgres_data:
