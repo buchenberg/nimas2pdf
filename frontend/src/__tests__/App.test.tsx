@@ -38,15 +38,7 @@ jest.mock('../components/ConversionStatus', () => {
   };
 });
 
-jest.mock('../components/PropertiesPanel', () => {
-  return function MockPropertiesPanel() {
-    return (
-      <div data-testid="properties-panel">
-        <h3>Properties Panel Component</h3>
-      </div>
-    );
-  };
-});
+
 
 describe('App Component', () => {
   beforeEach(() => {
@@ -69,21 +61,39 @@ describe('App Component', () => {
     render(<App />);
     
     // Check that all tabs are present
+    expect(screen.getByText('Upload')).toBeInTheDocument();
     expect(screen.getByText('NIMAS Packages')).toBeInTheDocument();
     expect(screen.getByText('Conversion Jobs')).toBeInTheDocument();
-    expect(screen.getByText('Conversion Properties')).toBeInTheDocument();
   });
 
-  it('shows the NIMAS Packages tab by default', () => {
+  it('shows the Upload tab by default', () => {
     render(<App />);
     
     // Default tab should be active
-    const packagesTab = screen.getByText('NIMAS Packages').closest('.nav-link');
-    expect(packagesTab).toHaveClass('active');
+    const uploadTab = screen.getByText('Upload').closest('.nav-link');
+    expect(uploadTab).toHaveClass('active');
     
-    // Package upload and list components should be visible
+    // Package upload component should be visible
     expect(screen.getByTestId('package-upload')).toBeInTheDocument();
-    expect(screen.getByTestId('package-list')).toBeInTheDocument();
+  });
+
+  it('switches to Upload tab when clicked', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    
+    // First switch to another tab
+    const packagesTab = screen.getByText('NIMAS Packages');
+    await user.click(packagesTab);
+    
+    // Then switch back to Upload tab
+    const uploadTab = screen.getByText('Upload');
+    await user.click(uploadTab);
+    
+    // Upload tab should now be active
+    expect(uploadTab.closest('.nav-link')).toHaveClass('active');
+    
+    // Package upload component should be visible
+    expect(screen.getByTestId('package-upload')).toBeInTheDocument();
   });
 
   it('switches to Conversion Jobs tab when clicked', async () => {
@@ -100,26 +110,18 @@ describe('App Component', () => {
     expect(screen.getByTestId('conversion-status')).toBeInTheDocument();
   });
 
-  it('switches to Conversion Properties tab when clicked', async () => {
-    const user = userEvent.setup();
-    render(<App />);
-    
-    const propertiesTab = screen.getByText('Conversion Properties');
-    await user.click(propertiesTab);
-    
-    // Properties tab should now be active
-    expect(propertiesTab.closest('.nav-link')).toHaveClass('active');
-    
-    // Properties panel component should be visible
-    expect(screen.getByTestId('properties-panel')).toBeInTheDocument();
-  });
+
 
   it('shows appropriate info panels for each tab', () => {
     render(<App />);
     
+    // Check info panel for Upload tab (default active)
+    expect(screen.getByText(/Upload NIMAS Package/)).toBeInTheDocument();
+    expect(screen.getByText(/Upload a NIMAS ZIP package to begin the conversion process/)).toBeInTheDocument();
+    
     // Check info panel for NIMAS Packages tab
     expect(screen.getByText(/About NIMAS Packages/)).toBeInTheDocument();
-    expect(screen.getByText(/NIMAS packages contain XML content, images, and metadata/)).toBeInTheDocument();
+    expect(screen.getByText(/View and manage your uploaded NIMAS packages/)).toBeInTheDocument();
   });
 
   it('displays the success message about database features', () => {
@@ -187,31 +189,30 @@ describe('App Component', () => {
     render(<App />);
     
     // Check that icons are present in tab labels
+    const uploadTab = screen.getByText('Upload');
     const packagesTab = screen.getByText('NIMAS Packages');
     const conversionJobsTab = screen.getByText('Conversion Jobs');
-    const propertiesTab = screen.getByText('Conversion Properties');
     
+    expect(uploadTab).toBeInTheDocument();
     expect(packagesTab).toBeInTheDocument();
     expect(conversionJobsTab).toBeInTheDocument();
-    expect(propertiesTab).toBeInTheDocument();
   });
 
   it('shows appropriate content for each tab', () => {
     render(<App />);
     
-    // NIMAS Packages tab content
+    // Upload tab content (default active)
     expect(screen.getByTestId('package-upload')).toBeInTheDocument();
+    
+    // Switch to NIMAS Packages tab
+    const packagesTab = screen.getByText('NIMAS Packages');
+    fireEvent.click(packagesTab);
     expect(screen.getByTestId('package-list')).toBeInTheDocument();
     
     // Switch to Conversion Jobs tab
     const conversionJobsTab = screen.getByText('Conversion Jobs');
     fireEvent.click(conversionJobsTab);
     expect(screen.getByTestId('conversion-status')).toBeInTheDocument();
-    
-    // Switch to Properties tab
-    const propertiesTab = screen.getByText('Conversion Properties');
-    fireEvent.click(propertiesTab);
-    expect(screen.getByTestId('properties-panel')).toBeInTheDocument();
   });
 
   it('handles multiple package uploads correctly', async () => {

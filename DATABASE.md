@@ -1,5 +1,7 @@
 # Database Layer Documentation
 
+> **📖 Main Documentation**: For complete application setup and usage instructions, see [README.md](README.md)
+
 ## Overview
 
 The NIMAS2PDF web application now includes a comprehensive database layer for storing NIMAS packages, files, and conversion jobs. This layer provides persistent storage and efficient querying capabilities for managing the entire conversion workflow.
