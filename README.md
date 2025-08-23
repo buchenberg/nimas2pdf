@@ -235,7 +235,10 @@ nimas2pdf/
 ├── Dockerfile             # Multi-stage Docker build
 ├── uploads/               # Package upload directory
 ├── outputs/               # Generated PDF directory
-└── README.md              # This file
+├── docs/                  # Documentation and sample data
+├── README.md              # This file
+├── DATABASE.md            # Database documentation
+└── TODO.md                # Development roadmap and improvements
 ```
 
 ## 🗄️ Database Schema
@@ -247,6 +250,25 @@ The application uses three main entities:
 - **ConversionJob**: Tracks conversion progress and results
 
 For detailed database documentation, see [DATABASE.md](DATABASE.md).
+
+## 🚀 Development Roadmap
+
+We maintain a comprehensive development roadmap that outlines planned improvements, bug fixes, and new features. This roadmap is based on code reviews and user feedback.
+
+### **Current Focus Areas**
+- **Security & Stability**: Input validation, error handling, and security improvements
+- **Performance & Scalability**: Service refactoring, caching, and async processing
+- **Code Quality**: Testing coverage, documentation, and code standards
+- **User Experience**: Frontend improvements and accessibility features
+
+### **View the Roadmap**
+For detailed information about planned improvements and development priorities, see [TODO.md](TODO.md).
+
+**Key Priorities:**
+1. **Phase 1**: Security vulnerabilities and stability fixes
+2. **Phase 2**: Architecture improvements and performance optimization
+3. **Phase 3**: Testing coverage and code quality tools
+4. **Phase 4**: User experience enhancements and monitoring
 
 ## 🔍 Troubleshooting
 
@@ -314,11 +336,24 @@ npm test
 
 ## 📝 Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Submit a pull request
+We welcome contributions! Before you start working on improvements, please review our development roadmap.
+
+### **Getting Started**
+1. **Review the Roadmap**: Check [TODO.md](TODO.md) for current priorities and planned improvements
+2. **Fork the repository**
+3. **Create a feature branch** for your changes
+4. **Make your changes** following the established patterns
+5. **Add tests** for new functionality
+6. **Submit a pull request** with a clear description of your changes
+
+### **Development Guidelines**
+- **Security First**: Always consider security implications of your changes
+- **Test Coverage**: Maintain or improve test coverage with your changes
+- **Documentation**: Update relevant documentation when adding new features
+- **Code Quality**: Follow existing code style and patterns
+
+### **Current Priorities**
+See [TODO.md](TODO.md) for the latest development priorities and areas that need attention.
 
 ## 📄 License
 
