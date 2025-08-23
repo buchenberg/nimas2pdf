@@ -3,7 +3,8 @@ FROM maven:3.8.4-openjdk-17 AS backend-build
 
 WORKDIR /app
 COPY backend/pom.xml .
-RUN mvn dependency:go-offline -B
+# Try to resolve dependencies with retry and better error handling
+RUN mvn dependency:resolve -B || mvn clean compile -B
 
 COPY backend/src ./src
 RUN mvn clean package -DskipTests

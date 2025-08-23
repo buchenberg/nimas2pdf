@@ -300,47 +300,58 @@ public class NimasPackageServiceImpl implements NimasPackageService {
                 if (node.getNodeType() == Node.ELEMENT_NODE) {
                     Element element = (Element) node;
                     String tagName = element.getTagName();
+                    String localName = element.getLocalName(); // Get local name without namespace
                     String content = element.getTextContent();
-                    System.out.println("Found element: " + tagName + " = " + content);
+                    System.out.println("Found element: " + tagName + " (local: " + localName + ") = " + content);
                     
-                    // Extract title (case-insensitive)
-                    if ("dc:Title".equals(tagName) || "dc:title".equals(tagName) || "Title".equals(tagName)) {
+                    // Extract title (check both full tag name and local name)
+                    if ("dc:Title".equals(tagName) || "dc:title".equals(tagName) || "Title".equals(tagName) || "Title".equals(localName)) {
                         nimasPackage.setTitle(content);
+                        System.out.println("Set title to: " + content);
                     }
-                    // Extract creator (case-insensitive)
-                    else if ("dc:Creator".equals(tagName) || "dc:creator".equals(tagName) || "Creator".equals(tagName)) {
+                    // Extract creator (check both full tag name and local name)
+                    else if ("dc:Creator".equals(tagName) || "dc:creator".equals(tagName) || "Creator".equals(tagName) || "Creator".equals(localName)) {
                         nimasPackage.setCreator(content);
                     }
-                    // Extract language (case-insensitive)
-                    else if ("dc:Language".equals(tagName) || "dc:language".equals(tagName) || "Language".equals(tagName)) {
+                    // Extract language (check both full tag name and local name)
+                    else if ("dc:Language".equals(tagName) || "dc:language".equals(tagName) || "Language".equals(tagName) || "Language".equals(localName)) {
                         nimasPackage.setLanguage(content);
                     }
-                    // Extract publisher (case-insensitive)
-                    else if ("dc:Publisher".equals(tagName) || "dc:publisher".equals(tagName) || "Publisher".equals(tagName)) {
+                    // Extract publisher (check both full tag name and local name)
+                    else if ("dc:Publisher".equals(tagName) || "dc:publisher".equals(tagName) || "Publisher".equals(tagName) || "Publisher".equals(localName)) {
                         nimasPackage.setPublisher(content);
                     }
-                    // Extract format (case-insensitive)
-                    else if ("dc:Format".equals(tagName) || "dc:format".equals(tagName) || "Format".equals(tagName)) {
+                    // Extract format (check both full tag name and local name)
+                    else if ("dc:Format".equals(tagName) || "dc:format".equals(tagName) || "Format".equals(tagName) || "Format".equals(localName)) {
                         nimasPackage.setFormat(content);
                     }
-                    // Extract source (case-insensitive)
-                    else if ("dc:Source".equals(tagName) || "dc:source".equals(tagName) || "Source".equals(tagName)) {
+                    // Extract source (check both full tag name and local name)
+                    else if ("dc:Source".equals(tagName) || "dc:source".equals(tagName) || "Source".equals(tagName) || "Source".equals(localName)) {
                         nimasPackage.setSource(content);
                     }
-                    // Extract subject (case-insensitive)
-                    else if ("dc:Subject".equals(tagName) || "dc:subject".equals(tagName) || "Subject".equals(tagName)) {
+                    // Extract subject (check both full tag name and local name)
+                    else if ("dc:Subject".equals(tagName) || "dc:subject".equals(tagName) || "Subject".equals(tagName) || "Subject".equals(localName)) {
                         nimasPackage.setSubject(content);
                     }
-                    // Extract rights (case-insensitive)
-                    else if ("dc:Rights".equals(tagName) || "dc:rights".equals(tagName) || "Rights".equals(tagName)) {
+                    // Extract rights (check both full tag name and local name)
+                    else if ("dc:Rights".equals(tagName) || "dc:rights".equals(tagName) || "Rights".equals(tagName) || "Rights".equals(localName)) {
                         nimasPackage.setRights(content);
                     }
                 }
             }
         }
         
+        // Also try to find dc:Title using namespace-aware methods as a fallback
+        if (nimasPackage.getTitle() == null || nimasPackage.getTitle().trim().isEmpty()) {
+            // Try using getElementsByTagNameNS for Dublin Core namespace
+            NodeList titleNodes = document.getElementsByTagNameNS("http://purl.org/dc/elements/1.1/", "Title");
+            if (titleNodes.getLength() > 0) {
+                String title = titleNodes.item(0).getTextContent();
+                nimasPackage.setTitle(title);
+                System.out.println("Found title using namespace-aware method: " + title);
+            }
+        }
 
-        
         // Extract extended metadata
         NodeList metaNodes = document.getElementsByTagName("meta");
         for (int i = 0; i < metaNodes.getLength(); i++) {
@@ -390,6 +401,21 @@ public class NimasPackageServiceImpl implements NimasPackageService {
             }
         }
         
+        // If no NIMAS identifier found using tag name, try namespace-aware method
+        if (!packageIdFound) {
+            NodeList nsIdentifierNodes = document.getElementsByTagNameNS("http://purl.org/dc/elements/1.1/", "Identifier");
+            for (int i = 0; i < nsIdentifierNodes.getLength(); i++) {
+                Element idElement = (Element) nsIdentifierNodes.item(i);
+                String scheme = idElement.getAttribute("scheme");
+                if ("NIMAS".equals(scheme)) {
+                    nimasPackage.setPackageId(idElement.getTextContent());
+                    packageIdFound = true;
+                    System.out.println("Found NIMAS identifier using namespace-aware method: " + idElement.getTextContent());
+                    break;
+                }
+            }
+        }
+        
         // If no NIMAS identifier found, try to use the first identifier or generate one
         if (!packageIdFound) {
             if (identifierNodes.getLength() > 0) {
@@ -410,6 +436,12 @@ public class NimasPackageServiceImpl implements NimasPackageService {
         
         // Log the extracted packageId for debugging
         System.out.println("Extracted packageId: " + nimasPackage.getPackageId());
+        
+        // Final validation - ensure title is set
+        if (nimasPackage.getTitle() == null || nimasPackage.getTitle().trim().isEmpty()) {
+            System.err.println("WARNING: Title is still null after parsing! Setting a default title.");
+            nimasPackage.setTitle("Untitled NIMAS Package");
+        }
         
         // Don't save here - let the calling method handle it
         // packageRepository.save(nimasPackage);
