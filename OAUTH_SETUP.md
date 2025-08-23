@@ -88,17 +88,25 @@ services:
 
 ### .env File (for Docker Compose)
 
-Create a `.env` file in the project root:
+Copy the example environment file and configure your credentials:
+
+```bash
+cp env.example .env
+```
+
+Then edit `.env` with your OAuth2 credentials:
 
 ```env
 # OAuth2 Configuration
-GOOGLE_CLIENT_ID=your-google-client-id
-GOOGLE_CLIENT_SECRET=your-google-client-secret
-GITHUB_CLIENT_ID=your-github-client-id
-GITHUB_CLIENT_SECRET=your-github-client-secret
-MICROSOFT_CLIENT_ID=your-microsoft-client-id
-MICROSOFT_CLIENT_SECRET=your-microsoft-client-secret
+GOOGLE_CLIENT_ID=your-actual-google-client-id
+GOOGLE_CLIENT_SECRET=your-actual-google-client-secret
+GITHUB_CLIENT_ID=your-actual-github-client-id
+GITHUB_CLIENT_SECRET=your-actual-github-client-secret
+MICROSOFT_CLIENT_ID=your-actual-microsoft-client-id
+MICROSOFT_CLIENT_SECRET=your-actual-microsoft-client-secret
 ```
+
+**Important**: The `.env` file is automatically excluded from version control to protect your credentials.
 
 ## Testing the Setup
 

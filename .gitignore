@@ -1,8 +1,22 @@
+# Environment Variables (OAuth2 credentials and secrets)
+.env
+.env.local
+.env.development
+.env.development.local
+.env.test
+.env.test.local
+.env.production
+.env.production.local
+!.env.example
+!env.example
+
 # Backend
 backend/target/
 backend/uploads/
 backend/outputs/
 backend/*.log
+backend/.env
+backend/.env.*
 
 # Frontend
 frontend/node_modules/

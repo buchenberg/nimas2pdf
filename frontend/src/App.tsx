@@ -1,14 +1,19 @@
 import React, { useState } from 'react';
-import { Container, Row, Col, Alert, Tab, Nav } from 'react-bootstrap';
+import { Container, Row, Col, Alert, Tab, Nav, Button, Navbar } from 'react-bootstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import PackageUpload from './components/PackageUpload';
 import PackageList from './components/PackageList';
 import ConversionStatus from './components/ConversionStatus';
+import LoginModal from './components/LoginModal';
+import UserProfile from './components/UserProfile';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import './App.css';
 
-function App() {
+const AppContent: React.FC = () => {
+  const { isAuthenticated, isLoading } = useAuth();
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [activeTab, setActiveTab] = useState('upload');
+  const [showLogin, setShowLogin] = useState(false);
 
   const handlePackageUploaded = (packageId: string) => {
     // Refresh the package list when a new package is uploaded
@@ -21,9 +26,93 @@ function App() {
     setActiveTab('conversions');
   };
 
+  if (isLoading) {
+    return (
+      <div className="d-flex justify-content-center align-items-center" style={{ height: '100vh' }}>
+        <div className="text-center">
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </div>
+          <p className="text-muted mt-2">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="App">
+        <Container fluid className="py-4">
+          {/* Header */}
+          <Navbar bg="light" className="mb-4 rounded">
+            <Container>
+              <Navbar.Brand>
+                <i className="bi bi-archive text-primary me-2"></i>
+                NIMAS2PDF
+              </Navbar.Brand>
+              <Button variant="primary" onClick={() => setShowLogin(true)}>
+                <i className="bi bi-box-arrow-in-right me-2"></i>
+                Sign In
+              </Button>
+            </Container>
+          </Navbar>
+
+          {/* Welcome Content */}
+          <Row className="justify-content-center">
+            <Col lg={8}>
+              <div className="text-center">
+                <i className="bi bi-archive text-primary mb-4" style={{ fontSize: '4rem' }}></i>
+                <h1 className="mb-4">Welcome to NIMAS2PDF</h1>
+                <p className="lead text-muted mb-4">
+                  Convert NIMAS packages to accessible PDF format with enterprise-grade security
+                </p>
+                
+                <div className="row g-4 mb-5">
+                  <div className="col-md-4">
+                    <i className="bi bi-shield-check text-success fs-1"></i>
+                    <h5 className="mt-2">Secure Authentication</h5>
+                    <p className="text-muted">OAuth2/OIDC integration with Google, GitHub, and Microsoft</p>
+                  </div>
+                  <div className="col-md-4">
+                    <i className="bi bi-cloud-upload text-primary fs-1"></i>
+                    <h5 className="mt-2">Easy Upload</h5>
+                    <p className="text-muted">Simple drag-and-drop interface for NIMAS packages</p>
+                  </div>
+                  <div className="col-md-4">
+                    <i className="bi bi-file-pdf text-danger fs-1"></i>
+                    <h5 className="mt-2">Accessible PDFs</h5>
+                    <p className="text-muted">Generate fully accessible PDF documents</p>
+                  </div>
+                </div>
+
+                <Button variant="primary" size="lg" onClick={() => setShowLogin(true)}>
+                  <i className="bi bi-box-arrow-in-right me-2"></i>
+                  Get Started - Sign In
+                </Button>
+              </div>
+            </Col>
+          </Row>
+
+          <LoginModal show={showLogin} onHide={() => setShowLogin(false)} />
+        </Container>
+      </div>
+    );
+  }
+
   return (
     <div className="App">
       <Container fluid className="py-4">
+        {/* Header with User Profile */}
+        <Navbar bg="light" className="mb-4 rounded">
+          <Container>
+            <Navbar.Brand>
+              <i className="bi bi-archive text-primary me-2"></i>
+              NIMAS2PDF
+            </Navbar.Brand>
+            <UserProfile />
+          </Container>
+        </Navbar>
+
         <Row>
           <Col>
             <h1 className="text-center mb-4">
@@ -129,6 +218,14 @@ function App() {
         </Row>
       </Container>
     </div>
+  );
+};
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
 
