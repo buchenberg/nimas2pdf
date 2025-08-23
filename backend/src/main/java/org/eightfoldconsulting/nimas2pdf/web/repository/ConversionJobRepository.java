@@ -1,6 +1,7 @@
 package org.eightfoldconsulting.nimas2pdf.web.repository;
 
 import org.eightfoldconsulting.nimas2pdf.web.entity.ConversionJob;
+import org.eightfoldconsulting.nimas2pdf.web.dto.ConversionJobSummary;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -64,8 +65,10 @@ public interface ConversionJobRepository extends JpaRepository<ConversionJob, Lo
     
     /**
      * Find all jobs ordered by creation date (newest first).
+     * This method excludes LOB fields to avoid PostgreSQL auto-commit issues.
      */
-    List<ConversionJob> findAllByOrderByCreatedAtDesc();
+    @Query(value = "SELECT j.id, j.job_id, j.status, j.progress, j.message, j.started_at, j.updated_at, j.created_at, j.completed_at, j.error_message, j.conversion_settings, j.output_filename, j.output_size, j.package_id FROM conversion_jobs j ORDER BY j.created_at DESC", nativeQuery = true)
+    List<Object[]> findAllJobsSummaryOrderByCreatedAtDesc();
     
     /**
      * Find jobs by progress range.

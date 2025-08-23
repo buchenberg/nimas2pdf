@@ -6,6 +6,7 @@ import org.eightfoldconsulting.nimas2pdf.web.entity.NimasFile;
 import org.eightfoldconsulting.nimas2pdf.web.entity.NimasPackage;
 import org.eightfoldconsulting.nimas2pdf.web.repository.ConversionJobRepository;
 import org.eightfoldconsulting.nimas2pdf.web.repository.NimasPackageRepository;
+import org.eightfoldconsulting.nimas2pdf.web.dto.ConversionJobSummary;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -174,9 +175,58 @@ public class ConversionJobService {
 
     /**
      * Get all conversion jobs ordered by creation date (newest first).
+     * Returns summary DTOs to avoid LOB field access issues.
      */
-    public List<ConversionJob> getAllConversionJobs() {
-        return conversionJobRepository.findAllByOrderByCreatedAtDesc();
+    public List<ConversionJobSummary> getAllConversionJobs() {
+        List<Object[]> results = conversionJobRepository.findAllJobsSummaryOrderByCreatedAtDesc();
+        return results.stream()
+            .map(this::mapToConversionJobSummary)
+            .toList();
+    }
+    
+    /**
+     * Map database result row to ConversionJobSummary.
+     */
+    private ConversionJobSummary mapToConversionJobSummary(Object[] row) {
+        ConversionJobSummary summary = new ConversionJobSummary();
+        
+        // Map the Object[] to ConversionJobSummary fields
+        // Order: id, job_id, status, progress, message, started_at, updated_at, created_at, completed_at, error_message, conversion_settings, output_filename, output_size, package_id
+        summary.setId((Long) row[0]);
+        summary.setJobId((String) row[1]);
+        summary.setStatus(ConversionJob.JobStatus.valueOf((String) row[2]));
+        summary.setProgress((Integer) row[3]);
+        summary.setMessage((String) row[4]);
+        summary.setStartedAt(convertTimestampToLocalDateTime(row[5]));
+        summary.setUpdatedAt(convertTimestampToLocalDateTime(row[6]));
+        summary.setCreatedAt(convertTimestampToLocalDateTime(row[7]));
+        summary.setCompletedAt(convertTimestampToLocalDateTime(row[8]));
+        summary.setErrorMessage((String) row[9]);
+        summary.setConversionSettings((String) row[10]);
+        summary.setOutputFilename((String) row[11]);
+        summary.setOutputSize((Long) row[12]);
+        
+        // For the package, we'll need to fetch it separately if needed
+        // For now, we'll set it to null to avoid LOB issues
+        summary.setNimasPackage(null);
+        
+        return summary;
+    }
+    
+    /**
+     * Convert java.sql.Timestamp to LocalDateTime, handling null values.
+     */
+    private LocalDateTime convertTimestampToLocalDateTime(Object timestamp) {
+        if (timestamp == null) {
+            return null;
+        }
+        if (timestamp instanceof java.sql.Timestamp) {
+            return ((java.sql.Timestamp) timestamp).toLocalDateTime();
+        }
+        if (timestamp instanceof LocalDateTime) {
+            return (LocalDateTime) timestamp;
+        }
+        throw new IllegalArgumentException("Cannot convert " + timestamp.getClass() + " to LocalDateTime");
     }
 
     /**
@@ -188,9 +238,24 @@ public class ConversionJobService {
 
     /**
      * Get all conversion jobs for a package.
+     * Returns summary DTOs to avoid LOB field access issues.
      */
-    public List<ConversionJob> getConversionJobsForPackage(Long packageId) {
-        return conversionJobRepository.findByNimasPackageId(packageId);
+    public List<ConversionJobSummary> getConversionJobsForPackage(Long packageId) {
+        List<ConversionJob> fullJobs = conversionJobRepository.findByNimasPackageId(packageId);
+        return fullJobs.stream()
+            .map(ConversionJobSummary::new)
+            .toList();
+    }
+    
+    /**
+     * Get conversion jobs by status.
+     * Returns summary DTOs to avoid LOB field access issues.
+     */
+    public List<ConversionJobSummary> getConversionJobsByStatus(ConversionJob.JobStatus status) {
+        List<ConversionJob> fullJobs = conversionJobRepository.findByStatus(status);
+        return fullJobs.stream()
+            .map(ConversionJobSummary::new)
+            .toList();
     }
 
     /**
@@ -218,5 +283,14 @@ public class ConversionJobService {
             return startConversionJob(originalJob.getNimasPackage().getId());
         }
         throw new IllegalArgumentException("Cannot retry job: " + jobId);
+    }
+    
+    /**
+     * Get conversion job with output content for download.
+     * This method is transactional to allow LOB field access.
+     */
+    @Transactional
+    public ConversionJob getConversionJobForDownload(String jobId) {
+        return conversionJobRepository.findByJobId(jobId).orElse(null);
     }
 }

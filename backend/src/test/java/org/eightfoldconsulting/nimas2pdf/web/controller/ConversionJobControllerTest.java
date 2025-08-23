@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.eightfoldconsulting.nimas2pdf.web.entity.ConversionJob;
 import org.eightfoldconsulting.nimas2pdf.web.entity.NimasPackage;
 import org.eightfoldconsulting.nimas2pdf.web.repository.ConversionJobRepository;
+import org.eightfoldconsulting.nimas2pdf.web.dto.ConversionJobSummary;
+import org.eightfoldconsulting.nimas2pdf.web.service.ConversionJobService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -33,6 +35,9 @@ class ConversionJobControllerTest {
 
     @MockBean
     private ConversionJobRepository conversionJobRepository;
+    
+    @MockBean
+    private ConversionJobService conversionJobService;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -44,8 +49,11 @@ class ConversionJobControllerTest {
         ConversionJob job1 = new ConversionJob("job-1", nimasPackage);
         ConversionJob job2 = new ConversionJob("job-2", nimasPackage);
         
-        when(conversionJobRepository.findAllByOrderByCreatedAtDesc())
-                .thenReturn(Arrays.asList(job1, job2));
+        ConversionJobSummary summary1 = new ConversionJobSummary(job1);
+        ConversionJobSummary summary2 = new ConversionJobSummary(job2);
+        
+        when(conversionJobService.getAllConversionJobs())
+                .thenReturn(Arrays.asList(summary1, summary2));
 
         // Act & Assert
         mockMvc.perform(get("/api/conversion-jobs"))
@@ -88,9 +96,10 @@ class ConversionJobControllerTest {
         // Arrange
         NimasPackage nimasPackage = new NimasPackage("test-123", "Test Package");
         ConversionJob job = new ConversionJob("job-1", nimasPackage);
+        ConversionJobSummary summary = new ConversionJobSummary(job);
         
-        when(conversionJobRepository.findByStatusOrderByCreatedAtDesc(ConversionJob.JobStatus.COMPLETED))
-                .thenReturn(Arrays.asList(job));
+        when(conversionJobService.getConversionJobsByStatus(ConversionJob.JobStatus.COMPLETED))
+                .thenReturn(Arrays.asList(summary));
 
         // Act & Assert
         mockMvc.perform(get("/api/conversion-jobs/status/completed"))
@@ -112,9 +121,10 @@ class ConversionJobControllerTest {
         // Arrange
         NimasPackage nimasPackage = new NimasPackage("test-123", "Test Package");
         ConversionJob job = new ConversionJob("job-1", nimasPackage);
+        ConversionJobSummary summary = new ConversionJobSummary(job);
         
-        when(conversionJobRepository.findRecentJobsByPackageId(1L))
-                .thenReturn(Arrays.asList(job));
+        when(conversionJobService.getConversionJobsForPackage(1L))
+                .thenReturn(Arrays.asList(summary));
 
         // Act & Assert
         mockMvc.perform(get("/api/conversion-jobs/package/1"))

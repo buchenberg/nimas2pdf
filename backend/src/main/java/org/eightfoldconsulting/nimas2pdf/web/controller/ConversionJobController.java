@@ -3,6 +3,7 @@ package org.eightfoldconsulting.nimas2pdf.web.controller;
 import org.eightfoldconsulting.nimas2pdf.web.entity.ConversionJob;
 import org.eightfoldconsulting.nimas2pdf.web.repository.ConversionJobRepository;
 import org.eightfoldconsulting.nimas2pdf.web.service.ConversionJobService;
+import org.eightfoldconsulting.nimas2pdf.web.dto.ConversionJobSummary;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpHeaders;
@@ -31,11 +32,11 @@ public class ConversionJobController {
     /**
      * Get all conversion jobs.
      * 
-     * @return List of all conversion jobs
+     * @return List of all conversion jobs (summary without LOB fields)
      */
     @GetMapping
-    public ResponseEntity<List<ConversionJob>> getAllConversionJobs() {
-        List<ConversionJob> jobs = conversionJobRepository.findAllByOrderByCreatedAtDesc();
+    public ResponseEntity<List<ConversionJobSummary>> getAllConversionJobs() {
+        List<ConversionJobSummary> jobs = conversionJobService.getAllConversionJobs();
         return ResponseEntity.ok(jobs);
     }
 
@@ -46,10 +47,10 @@ public class ConversionJobController {
      * @return List of conversion jobs with the specified status
      */
     @GetMapping("/status/{status}")
-    public ResponseEntity<List<ConversionJob>> getConversionJobsByStatus(@PathVariable String status) {
+    public ResponseEntity<List<ConversionJobSummary>> getConversionJobsByStatus(@PathVariable String status) {
         try {
             ConversionJob.JobStatus jobStatus = ConversionJob.JobStatus.valueOf(status.toUpperCase());
-            List<ConversionJob> jobs = conversionJobRepository.findByStatus(jobStatus);
+            List<ConversionJobSummary> jobs = conversionJobService.getConversionJobsByStatus(jobStatus);
             return ResponseEntity.ok(jobs);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();
@@ -63,8 +64,8 @@ public class ConversionJobController {
      * @return List of conversion jobs for the package
      */
     @GetMapping("/package/{packageId}")
-    public ResponseEntity<List<ConversionJob>> getConversionJobsByPackage(@PathVariable Long packageId) {
-        List<ConversionJob> jobs = conversionJobRepository.findByNimasPackageId(packageId);
+    public ResponseEntity<List<ConversionJobSummary>> getConversionJobsByPackage(@PathVariable Long packageId) {
+        List<ConversionJobSummary> jobs = conversionJobService.getConversionJobsForPackage(packageId);
         return ResponseEntity.ok(jobs);
     }
 
@@ -111,13 +112,11 @@ public class ConversionJobController {
      */
     @GetMapping("/{jobId}/download")
     public ResponseEntity<ByteArrayResource> downloadPdf(@PathVariable String jobId) {
-        Optional<ConversionJob> jobOpt = conversionJobRepository.findByJobId(jobId);
+        ConversionJob job = conversionJobService.getConversionJobForDownload(jobId);
         
-        if (jobOpt.isEmpty()) {
+        if (job == null) {
             return ResponseEntity.notFound().build();
         }
-        
-        ConversionJob job = jobOpt.get();
         
         if (job.getStatus() != ConversionJob.JobStatus.COMPLETED || job.getOutputContent() == null) {
             return ResponseEntity.badRequest().build();
