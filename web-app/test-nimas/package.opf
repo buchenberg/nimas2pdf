@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<package xmlns="http://www.idpf.org/2007/opf" version="2.0" unique-identifier="BookId">
+  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:opf="http://www.idpf.org/2007/opf">
+    <dc:identifier id="BookId" opf:scheme="NIMAS">9781122334455NIMAS</dc:identifier>
+    <dc:title>Test NIMAS Package</dc:title>
+    <dc:creator>Test Author</dc:creator>
+    <dc:language>en</dc:language>
+    <dc:publisher>Test Publisher</dc:publisher>
+    <dc:format>NIMAS</dc:format>
+    <dc:source>9781122334455</dc:source>
+    <dc:subject>Test Subject</dc:subject>
+    <dc:rights>Test Rights</dc:rights>
+    <meta name="nimas-SourceEdition" content="1st Edition"/>
+    <meta name="nimas-SourceDate" content="2025"/>
+    <meta name="DCTERMS.audience.educationLevel" content="High School"/>
+    <meta name="DCTERMS.date.dateCopyrighted" content="2025"/>
+    <meta name="DCTERMS.description.note" content="Test description"/>
+    <meta name="DCTERMS.description.version" content="1.0"/>
+    <meta name="DCTERMS.publisher.place" content="Test City"/>
+  </metadata>
+  <manifest>
+    <item id="opf" href="package.opf" media-type="application/oebps-package+xml"/>
+    <item id="dtbook" href="content.xml" media-type="application/x-dtbook+xml"/>
+  </manifest>
+  <spine>
+    <itemref idref="dtbook"/>
+  </spine>
+</package>

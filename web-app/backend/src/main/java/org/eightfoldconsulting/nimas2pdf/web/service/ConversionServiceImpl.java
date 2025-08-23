@@ -1,6 +1,7 @@
 package org.eightfoldconsulting.nimas2pdf.web.service;
 
 import org.eightfoldconsulting.nimas2pdf.web.dto.ConversionStatus;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.scheduling.annotation.Async;
@@ -25,8 +26,13 @@ public class ConversionServiceImpl implements ConversionService {
     private final Map<String, ConversionStatus> conversions = new ConcurrentHashMap<>();
     private final Path uploadDir = Paths.get("uploads");
     private final Path outputDir = Paths.get("outputs");
+    
+    private final XMLConverter xmlConverter;
 
-    public ConversionServiceImpl() {
+    @Autowired
+    public ConversionServiceImpl(XMLConverter xmlConverter) {
+        this.xmlConverter = xmlConverter;
+        
         // Create directories if they don't exist
         try {
             Files.createDirectories(uploadDir);
@@ -34,6 +40,12 @@ public class ConversionServiceImpl implements ConversionService {
         } catch (IOException e) {
             throw new RuntimeException("Failed to create directories", e);
         }
+    }
+
+    public ConversionServiceImpl() {
+        // This constructor is kept for backward compatibility but should not be used
+        // Use the constructor with XMLConverter parameter instead
+        throw new UnsupportedOperationException("Use ConversionServiceImpl(XMLConverter xmlConverter) constructor");
     }
 
     @Override
@@ -87,13 +99,14 @@ public class ConversionServiceImpl implements ConversionService {
 
     @Override
     public Object getProperties() {
-        // TODO: Return properties from existing ApplicationProperties class
-        return new Object(); // Placeholder
+        // Return default conversion properties
+        return new org.eightfoldconsulting.nimas2pdf.web.config.ConversionProperties();
     }
 
     @Override
     public void updateProperties(Object properties) {
-        // TODO: Update properties in existing ApplicationProperties class
+        // This method is not used in the current implementation
+        // Properties are stored per NIMAS package
     }
 
     @Async
@@ -108,9 +121,8 @@ public class ConversionServiceImpl implements ConversionService {
             String outputFileName = outputName != null ? outputName : 
                 "converted_" + conversionId + ".pdf";
             
-            // TODO: Perform conversion using existing XMLConverter class
-            // For now, simulate conversion
-            simulateConversion(status);
+            // Perform actual XML to PDF conversion
+            performXmlConversion(status, inputFile, outputFileName);
             
             // Update final status
             status.setStatus("COMPLETED");
@@ -141,30 +153,33 @@ public class ConversionServiceImpl implements ConversionService {
         return filename.substring(filename.lastIndexOf("."));
     }
 
-    private void simulateConversion(ConversionStatus status) {
+    private void performXmlConversion(ConversionStatus status, Path inputFile, String outputFileName) {
         try {
             status.setProgress(20);
             status.setMessage("Reading NIMAS file...");
-            Thread.sleep(1000);
+            
+            // Check if input file is XML
+            if (!inputFile.toString().toLowerCase().endsWith(".xml")) {
+                throw new IllegalArgumentException("Input file must be an XML file");
+            }
             
             status.setProgress(40);
             status.setMessage("Processing XML content...");
-            Thread.sleep(1000);
+            
+            // Set output path
+            Path outputPath = outputDir.resolve(outputFileName);
             
             status.setProgress(60);
             status.setMessage("Generating PDF...");
-            Thread.sleep(1000);
             
-            status.setProgress(80);
-            status.setMessage("Finalizing PDF...");
-            Thread.sleep(1000);
+                               // Convert XML to PDF using XMLConverter with default properties
+                   xmlConverter.convertToPdf(inputFile, outputPath, null, null);
             
             status.setProgress(90);
             status.setMessage("Conversion completed successfully!");
             
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            status.setMessage("Conversion interrupted");
+        } catch (Exception e) {
+            throw new RuntimeException("XML conversion failed: " + e.getMessage(), e);
         }
     }
 }

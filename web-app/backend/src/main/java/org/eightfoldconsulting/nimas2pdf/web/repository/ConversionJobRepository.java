@@ -63,6 +63,11 @@ public interface ConversionJobRepository extends JpaRepository<ConversionJob, Lo
     List<ConversionJob> findJobsWithErrors();
     
     /**
+     * Find all jobs ordered by creation date (newest first).
+     */
+    List<ConversionJob> findAllByOrderByCreatedAtDesc();
+    
+    /**
      * Find jobs by progress range.
      */
     @Query("SELECT j FROM ConversionJob j WHERE j.progress BETWEEN :minProgress AND :maxProgress")

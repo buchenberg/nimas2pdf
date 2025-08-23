@@ -92,3 +92,77 @@ code {
 .conversion-item.processing {
   border-left-color: #ffc107;
 }
+
+/* Package-specific Styles */
+.package-info {
+  background: rgba(248, 249, 250, 0.9);
+  border-radius: 8px;
+  border-left: 4px solid #28a745;
+}
+
+.package-info h6 {
+  color: #28a745;
+  margin-bottom: 15px;
+}
+
+/* Tab Navigation */
+.nav-tabs .nav-link {
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #6c757d;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.nav-tabs .nav-link:hover {
+  border-color: #007bff;
+  color: #007bff;
+}
+
+.nav-tabs .nav-link.active {
+  border-color: #007bff;
+  color: #007bff;
+  background: transparent;
+}
+
+/* Table Styles */
+.table th {
+  border-top: none;
+  font-weight: 600;
+  color: #495057;
+}
+
+.table td {
+  vertical-align: middle;
+}
+
+.btn-group-sm .btn {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+}
+
+/* Search and Filter Controls */
+.search-controls {
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 20px;
+}
+
+/* Status Badges */
+.badge {
+  font-size: 0.75rem;
+  padding: 0.375rem 0.75rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .upload-zone {
+    padding: 20px;
+  }
+  
+  .btn-group-sm .btn {
+    padding: 0.375rem 0.75rem;
+    font-size: 1rem;
+  }
+}

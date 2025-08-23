@@ -5,10 +5,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.io.Resource;
 import org.springframework.mock.web.MockMultipartFile;
 
+import java.lang.reflect.Field;
 import java.nio.file.Path;
 import java.util.UUID;
 
@@ -22,6 +24,9 @@ class ConversionServiceImplTest {
 
     private ConversionServiceImpl conversionService;
 
+    @Mock
+    private XMLConverter xmlConverter;
+
     @TempDir
     Path tempDir;
 
@@ -30,7 +35,8 @@ class ConversionServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        conversionService = new ConversionServiceImpl();
+        conversionService = new ConversionServiceImpl(xmlConverter);
+        
         mockFile = new MockMultipartFile(
             "file",
             TEST_FILENAME,

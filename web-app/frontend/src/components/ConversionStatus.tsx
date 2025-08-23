@@ -5,44 +5,48 @@ import axios from 'axios';
 interface ConversionStatusProps {}
 
 interface ConversionItem {
-  id: string;
+  id: number;
+  jobId: string;
   status: string;
   progress: number;
   message: string;
-  startTime: string;
-  lastUpdate: string;
-  outputFileName?: string;
-  fileSize?: number;
+  startedAt?: string;
+  updatedAt: string;
+  createdAt: string;
+  completedAt?: string;
+  errorMessage?: string;
+  outputFilename?: string;
+  outputSize?: number;
+  nimasPackage?: {
+    id: number;
+    packageId: string;
+    title: string;
+  };
 }
 
 const ConversionStatus: React.FC<ConversionStatusProps> = () => {
   const [conversions, setConversions] = useState<ConversionItem[]>([]);
-  const [polling, setPolling] = useState(false);
 
-  // Mock data for demonstration - replace with real API calls
+  // Load conversion jobs from API
   useEffect(() => {
-    // Simulate some conversion history
-    setConversions([
-      {
-        id: 'demo-1',
-        status: 'COMPLETED',
-        progress: 100,
-        message: 'Conversion completed successfully!',
-        startTime: '2025-08-22T10:00:00',
-        lastUpdate: '2025-08-22T10:02:30',
-        outputFileName: 'document_1.pdf',
-        fileSize: 2048576
-      },
-      {
-        id: 'demo-2',
-        status: 'PROCESSING',
-        progress: 65,
-        message: 'Generating PDF...',
-        startTime: '2025-08-22T10:05:00',
-        lastUpdate: '2025-08-22T10:06:45'
-      }
-    ]);
+    loadConversions();
+    
+    // Auto-refresh every 10 seconds
+    const interval = setInterval(loadConversions, 10000);
+    
+    return () => clearInterval(interval);
   }, []);
+
+  const loadConversions = async () => {
+    try {
+      const response = await axios.get('/api/conversion-jobs');
+      setConversions(response.data);
+    } catch (error) {
+      console.error('Failed to load conversions:', error);
+      // Set empty array on error
+      setConversions([]);
+    }
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -74,9 +78,9 @@ const ConversionStatus: React.FC<ConversionStatusProps> = () => {
     }
   };
 
-  const handleDownload = async (conversionId: string, fileName: string) => {
+  const handleDownload = async (jobId: string, fileName: string) => {
     try {
-      const response = await axios.get(`/api/download/${conversionId}`, {
+      const response = await axios.get(`/api/conversion-jobs/${jobId}/download`, {
         responseType: 'blob'
       });
 
@@ -105,13 +109,45 @@ const ConversionStatus: React.FC<ConversionStatusProps> = () => {
     return new Date(dateTime).toLocaleString();
   };
 
+  const handleCancelJob = async (jobId: string) => {
+    try {
+      await axios.post(`/api/conversion-jobs/${jobId}/cancel`);
+      // Reload conversions to get updated status
+      loadConversions();
+    } catch (error: any) {
+      console.error('Failed to cancel job:', error);
+      alert(error.response?.data || 'Failed to cancel job');
+    }
+  };
+
+  const handleRetryJob = async (jobId: string) => {
+    try {
+      await axios.post(`/api/conversion-jobs/${jobId}/retry`);
+      // Reload conversions to get updated status
+      loadConversions();
+    } catch (error: any) {
+      console.error('Failed to retry job:', error);
+      alert(error.response?.data || 'Failed to retry job');
+    }
+  };
+
   return (
     <Card className="status-card">
       <Card.Header>
-        <h5 className="mb-0">
-          <i className="bi bi-list-check me-2"></i>
-          Conversion Status
-        </h5>
+        <div className="d-flex justify-content-between align-items-center">
+          <h5 className="mb-0">
+            <i className="bi bi-list-check me-2"></i>
+            Conversion Status
+          </h5>
+          <Button
+            variant="outline-secondary"
+            size="sm"
+            onClick={loadConversions}
+            title="Refresh conversion jobs"
+          >
+            <i className="bi bi-arrow-clockwise"></i>
+          </Button>
+        </div>
       </Card.Header>
       <Card.Body>
         {conversions.length === 0 ? (
@@ -144,32 +180,65 @@ const ConversionStatus: React.FC<ConversionStatusProps> = () => {
                   />
                 )}
 
+                {conversion.nimasPackage && (
+                  <div className="mb-2">
+                    <small className="text-muted">
+                      <i className="bi bi-archive me-1"></i>
+                      Package: {conversion.nimasPackage.packageId} - {conversion.nimasPackage.title}
+                    </small>
+                  </div>
+                )}
+
                 <div className="row text-muted small">
                   <div className="col-6">
                     <i className="bi bi-clock me-1"></i>
-                    Started: {formatDateTime(conversion.startTime)}
+                    Created: {formatDateTime(conversion.createdAt)}
                   </div>
                   <div className="col-6">
                     <i className="bi bi-arrow-clockwise me-1"></i>
-                    Updated: {formatDateTime(conversion.lastUpdate)}
+                    Updated: {formatDateTime(conversion.updatedAt)}
                   </div>
                 </div>
+                
+                {conversion.startedAt && (
+                  <div className="row text-muted small">
+                    <div className="col-6">
+                      <i className="bi bi-play-circle me-1"></i>
+                      Started: {formatDateTime(conversion.startedAt)}
+                    </div>
+                    {conversion.completedAt && (
+                      <div className="col-6">
+                        <i className="bi bi-check-circle me-1"></i>
+                        Completed: {formatDateTime(conversion.completedAt)}
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                {conversion.errorMessage && (
+                  <div className="mt-2 p-2 bg-danger bg-opacity-10 rounded">
+                    <small className="text-danger">
+                      <i className="bi bi-exclamation-triangle me-1"></i>
+                      Error: {conversion.errorMessage}
+                    </small>
+                  </div>
+                )}
 
-                {conversion.status === 'COMPLETED' && conversion.outputFileName && (
+                {conversion.status === 'COMPLETED' && conversion.outputFilename && (
                   <div className="mt-3 p-3 bg-light rounded">
                     <div className="d-flex justify-content-between align-items-center">
                       <div>
                         <i className="bi bi-file-earmark-pdf text-danger me-2"></i>
-                        <strong>{conversion.outputFileName}</strong>
+                        <strong>{conversion.outputFilename}</strong>
                         <br />
                         <small className="text-muted">
-                          Size: {formatFileSize(conversion.fileSize)}
+                          Size: {formatFileSize(conversion.outputSize)}
                         </small>
                       </div>
                       <Button
                         variant="outline-primary"
                         size="sm"
-                        onClick={() => handleDownload(conversion.id, conversion.outputFileName!)}
+                        onClick={() => handleDownload(conversion.jobId, conversion.outputFilename!)}
                       >
                         <i className="bi bi-download me-1"></i>
                         Download
@@ -177,6 +246,42 @@ const ConversionStatus: React.FC<ConversionStatusProps> = () => {
                     </div>
                   </div>
                 )}
+                
+                {/* Action Buttons */}
+                <div className="mt-3 d-flex gap-2">
+                  {conversion.status === 'PENDING' && (
+                    <Button
+                      variant="outline-danger"
+                      size="sm"
+                      onClick={() => handleCancelJob(conversion.jobId)}
+                    >
+                      <i className="bi bi-x-circle me-1"></i>
+                      Cancel
+                    </Button>
+                  )}
+                  
+                  {conversion.status === 'PROCESSING' && (
+                    <Button
+                      variant="outline-danger"
+                      size="sm"
+                      onClick={() => handleCancelJob(conversion.jobId)}
+                    >
+                      <i className="bi bi-x-circle me-1"></i>
+                      Cancel
+                    </Button>
+                  )}
+                  
+                  {conversion.status === 'FAILED' && (
+                    <Button
+                      variant="outline-warning"
+                      size="sm"
+                      onClick={() => handleRetryJob(conversion.jobId)}
+                    >
+                      <i className="bi bi-arrow-clockwise me-1"></i>
+                      Retry
+                    </Button>
+                  )}
+                </div>
               </ListGroup.Item>
             ))}
           </ListGroup>

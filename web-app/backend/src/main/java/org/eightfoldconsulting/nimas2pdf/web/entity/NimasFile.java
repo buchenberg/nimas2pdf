@@ -2,6 +2,7 @@ package org.eightfoldconsulting.nimas2pdf.web.entity;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 /**
  * Entity representing individual files within a NIMAS package.
@@ -51,6 +52,7 @@ public class NimasFile {
     @Column(name = "content", nullable = false)
     @Lob
     @Basic(fetch = FetchType.LAZY)
+    @JsonIgnore
     private byte[] content; // Binary file content
     
     // Constructors

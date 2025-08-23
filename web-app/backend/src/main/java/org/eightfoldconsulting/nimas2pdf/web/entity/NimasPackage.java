@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import org.eightfoldconsulting.nimas2pdf.web.config.ConversionProperties;
 
 /**
  * Entity representing a NIMAS package (OPF file).
@@ -63,8 +65,11 @@ public class NimasPackage {
     
     @Column(name = "rights")
     @Lob
-    private String rights;
- // NIMAS usage rights
+    private String rights; // NIMAS usage rights
+    
+    @Column(name = "conversion_properties")
+    @Convert(converter = ConversionPropertiesConverter.class)
+    private ConversionProperties conversionProperties;
     
     @Column(name = "uploaded_at", nullable = false)
     private LocalDateTime uploadedAt;
@@ -74,9 +79,11 @@ public class NimasPackage {
     private PackageStatus status;
     
     @OneToMany(mappedBy = "nimasPackage", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore
     private List<NimasFile> files = new ArrayList<>();
     
     @OneToMany(mappedBy = "nimasPackage", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore
     private List<ConversionJob> conversionJobs = new ArrayList<>();
     
     // Constructors
@@ -87,6 +94,7 @@ public class NimasPackage {
         this.title = title;
         this.uploadedAt = LocalDateTime.now();
         this.status = PackageStatus.UPLOADED;
+        this.conversionProperties = new ConversionProperties(); // Initialize with default properties
     }
     
     // Getters and Setters
@@ -140,6 +148,9 @@ public class NimasPackage {
     
     public String getRights() { return rights; }
     public void setRights(String rights) { this.rights = rights; }
+    
+    public ConversionProperties getConversionProperties() { return conversionProperties; }
+    public void setConversionProperties(ConversionProperties conversionProperties) { this.conversionProperties = conversionProperties; }
     
     public LocalDateTime getUploadedAt() { return uploadedAt; }
     public void setUploadedAt(LocalDateTime uploadedAt) { this.uploadedAt = uploadedAt; }

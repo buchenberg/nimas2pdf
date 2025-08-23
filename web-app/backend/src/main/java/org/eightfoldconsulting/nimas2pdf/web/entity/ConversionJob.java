@@ -2,6 +2,7 @@ package org.eightfoldconsulting.nimas2pdf.web.entity;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 /**
  * Entity representing a PDF conversion job for a NIMAS package.
@@ -53,6 +54,7 @@ public class ConversionJob {
     @Column(name = "output_content")
     @Lob
     @Basic(fetch = FetchType.LAZY)
+    @JsonIgnore
     private byte[] outputContent; // Generated PDF content
     
     @Column(name = "created_at", nullable = false)

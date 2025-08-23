@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -48,11 +49,8 @@ public class NimasPackageServiceImpl implements NimasPackageService {
         nimasPackage.setStatus(NimasPackage.PackageStatus.UPLOADED);
         nimasPackage.setUploadedAt(java.time.LocalDateTime.now());
         
-        // Save package first to get ID
-        nimasPackage = packageRepository.save(nimasPackage);
-        
         try {
-            // Extract ZIP contents
+            // Extract ZIP contents first to find OPF file
             List<NimasFile> extractedFiles = extractZipContents(zipFile.getInputStream(), nimasPackage);
             
             // Find and parse OPF file
@@ -61,8 +59,23 @@ public class NimasPackageServiceImpl implements NimasPackageService {
                 .findFirst();
             
             if (opfFile.isPresent()) {
-                // Extract metadata from OPF
+                // Extract metadata from OPF before saving
                 extractPackageMetadataFromOpf(opfFile.get(), nimasPackage);
+                
+                // Debug: Check if packageId is set
+                System.out.println("Before saving - packageId: " + nimasPackage.getPackageId());
+                System.out.println("Before saving - title: " + nimasPackage.getTitle());
+                
+                // Now save the package with all metadata
+                nimasPackage = packageRepository.save(nimasPackage);
+                
+                // Now that the package is saved, associate and save all the files
+                for (NimasFile file : extractedFiles) {
+                    // Associate the file with the saved package
+                    file.setNimasPackage(nimasPackage);
+                    // Save the file with the proper association
+                    fileRepository.save(file);
+                }
                 
                 // Validate package structure
                 PackageValidationResult validation = validatePackage(nimasPackage);
@@ -82,8 +95,11 @@ public class NimasPackageServiceImpl implements NimasPackageService {
             }
             
         } catch (Exception e) {
-            nimasPackage.setStatus(NimasPackage.PackageStatus.ERROR);
-            packageRepository.save(nimasPackage);
+            // Only save if we have a valid package ID
+            if (nimasPackage.getPackageId() != null) {
+                nimasPackage.setStatus(NimasPackage.PackageStatus.ERROR);
+                packageRepository.save(nimasPackage);
+            }
             throw e;
         }
     }
@@ -247,11 +263,7 @@ public class NimasPackageServiceImpl implements NimasPackageService {
                     // Calculate file hash
                     nimasFile.setFileHash(calculateFileHash(content));
                     
-                    // Associate with package
-                    nimasPackage.addFile(nimasFile);
-                    
-                    // Save file
-                    fileRepository.save(nimasFile);
+                    // Don't associate with package yet - we'll do that after saving
                     files.add(nimasFile);
                 }
                 zis.closeEntry();
@@ -268,49 +280,66 @@ public class NimasPackageServiceImpl implements NimasPackageService {
         String opfContent = new String(opfFile.getContent(), StandardCharsets.UTF_8);
         
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        factory.setNamespaceAware(true); // Enable namespace awareness
         DocumentBuilder builder = factory.newDocumentBuilder();
         Document document = builder.parse(new ByteArrayInputStream(opfFile.getContent()));
         
-        // Extract basic metadata
-        NodeList titleNodes = document.getElementsByTagName("dc:Title");
-        if (titleNodes.getLength() > 0) {
-            nimasPackage.setTitle(titleNodes.item(0).getTextContent());
+        // Extract basic metadata using a more robust approach
+        // Since getElementsByTagName doesn't work well with namespaces, 
+        // let's traverse the DOM tree manually
+        
+        // Find the metadata element first
+        NodeList metadataNodes = document.getElementsByTagName("metadata");
+        if (metadataNodes.getLength() > 0) {
+            Element metadataElement = (Element) metadataNodes.item(0);
+            
+            // Extract all metadata in one pass
+            NodeList allNodes = metadataElement.getChildNodes();
+            for (int i = 0; i < allNodes.getLength(); i++) {
+                Node node = allNodes.item(i);
+                if (node.getNodeType() == Node.ELEMENT_NODE) {
+                    Element element = (Element) node;
+                    String tagName = element.getTagName();
+                    String content = element.getTextContent();
+                    System.out.println("Found element: " + tagName + " = " + content);
+                    
+                    // Extract title (case-insensitive)
+                    if ("dc:Title".equals(tagName) || "dc:title".equals(tagName) || "Title".equals(tagName)) {
+                        nimasPackage.setTitle(content);
+                    }
+                    // Extract creator (case-insensitive)
+                    else if ("dc:Creator".equals(tagName) || "dc:creator".equals(tagName) || "Creator".equals(tagName)) {
+                        nimasPackage.setCreator(content);
+                    }
+                    // Extract language (case-insensitive)
+                    else if ("dc:Language".equals(tagName) || "dc:language".equals(tagName) || "Language".equals(tagName)) {
+                        nimasPackage.setLanguage(content);
+                    }
+                    // Extract publisher (case-insensitive)
+                    else if ("dc:Publisher".equals(tagName) || "dc:publisher".equals(tagName) || "Publisher".equals(tagName)) {
+                        nimasPackage.setPublisher(content);
+                    }
+                    // Extract format (case-insensitive)
+                    else if ("dc:Format".equals(tagName) || "dc:format".equals(tagName) || "Format".equals(tagName)) {
+                        nimasPackage.setFormat(content);
+                    }
+                    // Extract source (case-insensitive)
+                    else if ("dc:Source".equals(tagName) || "dc:source".equals(tagName) || "Source".equals(tagName)) {
+                        nimasPackage.setSource(content);
+                    }
+                    // Extract subject (case-insensitive)
+                    else if ("dc:Subject".equals(tagName) || "dc:subject".equals(tagName) || "Subject".equals(tagName)) {
+                        nimasPackage.setSubject(content);
+                    }
+                    // Extract rights (case-insensitive)
+                    else if ("dc:Rights".equals(tagName) || "dc:rights".equals(tagName) || "Rights".equals(tagName)) {
+                        nimasPackage.setRights(content);
+                    }
+                }
+            }
         }
         
-        NodeList creatorNodes = document.getElementsByTagName("dc:Creator");
-        if (creatorNodes.getLength() > 0) {
-            nimasPackage.setCreator(creatorNodes.item(0).getTextContent());
-        }
-        
-        NodeList languageNodes = document.getElementsByTagName("dc:Language");
-        if (languageNodes.getLength() > 0) {
-            nimasPackage.setLanguage(languageNodes.item(0).getTextContent());
-        }
-        
-        NodeList publisherNodes = document.getElementsByTagName("dc:Publisher");
-        if (publisherNodes.getLength() > 0) {
-            nimasPackage.setPublisher(publisherNodes.item(0).getTextContent());
-        }
-        
-        NodeList formatNodes = document.getElementsByTagName("dc:Format");
-        if (formatNodes.getLength() > 0) {
-            nimasPackage.setFormat(formatNodes.item(0).getTextContent());
-        }
-        
-        NodeList sourceNodes = document.getElementsByTagName("dc:Source");
-        if (sourceNodes.getLength() > 0) {
-            nimasPackage.setSource(sourceNodes.item(0).getTextContent());
-        }
-        
-        NodeList subjectNodes = document.getElementsByTagName("dc:Subject");
-        if (subjectNodes.getLength() > 0) {
-            nimasPackage.setSubject(subjectNodes.item(0).getTextContent());
-        }
-        
-        NodeList rightsNodes = document.getElementsByTagName("dc:Rights");
-        if (rightsNodes.getLength() > 0) {
-            nimasPackage.setRights(rightsNodes.item(0).getTextContent());
-        }
+
         
         // Extract extended metadata
         NodeList metaNodes = document.getElementsByTagName("meta");
@@ -350,17 +379,40 @@ public class NimasPackageServiceImpl implements NimasPackageService {
         
         // Extract package ID from identifier
         NodeList identifierNodes = document.getElementsByTagName("dc:Identifier");
+        boolean packageIdFound = false;
         for (int i = 0; i < identifierNodes.getLength(); i++) {
             Element idElement = (Element) identifierNodes.item(i);
             String scheme = idElement.getAttribute("scheme");
             if ("NIMAS".equals(scheme)) {
                 nimasPackage.setPackageId(idElement.getTextContent());
+                packageIdFound = true;
                 break;
             }
         }
         
-        // Save updated package
-        packageRepository.save(nimasPackage);
+        // If no NIMAS identifier found, try to use the first identifier or generate one
+        if (!packageIdFound) {
+            if (identifierNodes.getLength() > 0) {
+                // Use the first identifier as fallback
+                String fallbackId = identifierNodes.item(0).getTextContent();
+                nimasPackage.setPackageId("FALLBACK_" + fallbackId);
+            } else {
+                // Generate a unique identifier based on timestamp
+                String generatedId = "GENERATED_" + System.currentTimeMillis();
+                nimasPackage.setPackageId(generatedId);
+            }
+        }
+        
+        // Ensure packageId is set before proceeding
+        if (nimasPackage.getPackageId() == null || nimasPackage.getPackageId().trim().isEmpty()) {
+            throw new RuntimeException("Failed to extract or generate package ID from OPF file");
+        }
+        
+        // Log the extracted packageId for debugging
+        System.out.println("Extracted packageId: " + nimasPackage.getPackageId());
+        
+        // Don't save here - let the calling method handle it
+        // packageRepository.save(nimasPackage);
     }
     
     /**
